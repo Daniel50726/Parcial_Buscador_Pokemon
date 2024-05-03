@@ -100,14 +100,12 @@ async function imageUrlPokemon(endpoint) {
         // Realiza la solicitud HTTP al endpoint proporcionado
         const response = await axios.get(endpoint);
 
-        // Obtiene la URL de la imagen del Pokémon
-        const imageUrl = response.data.sprites.front_default;
-
-        // Devuelve la URL de la imagen del Pokémon
-        return imageUrl;
+        // Obtiene la URL de la imagen oficial del Pokémon
+        // Devuelve la URL de la imagen oficial del Pokémon
+        return response.data.sprites.other['official-artwork'].front_default;
     } catch (error) {
         // Manejo de errores
-        console.error("Hubo un error al obtener la imagen del Pokémon:", error);
+        console.error("Hubo un error al obtener la imagen oficial del Pokémon:", error);
         return null; // Devuelve null en caso de error
     }
 }
@@ -127,6 +125,47 @@ async function namePokemon(apiUrl) {
         return null; // Devuelve null en caso de error
     }
 }
+async function evolutionPokemon(pokemonName) {
+    try {
+        // Obtener datos del Pokémon
+        const pokemonResponse = await axios.get(`https://pokeapi.co/api/v2/pokemon/${pokemonName}`);
+        const speciesUrl = pokemonResponse.data.species.url;
 
+        // Obtener URL de la cadena de evolución del Pokémon
+        const speciesResponse = await axios.get(speciesUrl);
+        const evolutionChainUrl = speciesResponse.data.evolution_chain.url;
 
+        // Obtener datos de la cadena de evolución
+        const evolutionChainResponse = await axios.get(evolutionChainUrl);
+        const evolutionChainData = evolutionChainResponse.data.chain;
 
+        // Función para obtener todas las evoluciones de manera recursiva
+        function getEvolutions(chain) {
+            let evolutions = [];
+            // Agregar el nombre del Pokémon actual a la lista de evoluciones
+            evolutions.push(chain.species.name);
+            // Verificar si hay evoluciones adicionales
+            if (chain.evolves_to.length > 0) {
+                // Recorrer las evoluciones
+                chain.evolves_to.forEach(evolution => {
+                    // Obtener las evoluciones de forma recursiva
+                    evolutions = evolutions.concat(getEvolutions(evolution));
+                });
+            }
+            return evolutions;
+        }
+
+        // Devolver todas las evoluciones del Pokémon
+        return getEvolutions(evolutionChainData);
+    } catch (error) {
+        console.error(`Error al obtener las evoluciones de ${pokemonName}:`, error.message);
+        return []; // Devolver un arreglo vacío en caso de error
+    }
+}
+evolutionPokemon('pikachu')
+    .then(evolutions => {
+        console.log('Evoluciones de Pikachu:', evolutions);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
